@@ -10,8 +10,9 @@ const pool = new Pool({
 });
 
 // create table
+const tablename = "anothertable"
 pool.query(
-  "CREATE TABLE IF NOT EXISTS funkytable (id serial primary key, username varchar(255), password varchar(255));",
+  `CREATE TABLE IF NOT EXISTS ${tablename} (id serial primary key, username varchar(255), password varchar(255));`,
   (error, results) => {
     if (error) {
       throw error;

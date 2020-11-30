@@ -37,17 +37,19 @@ function addUser(tablename, uname, pword) {
 }
 
 // get specific user
-function getUser(tablename, uname) {
-  pool.query(
+async function getUser(tablename, uname) {
+  var rows = await pool.query(
     `SELECT * FROM ${tablename} WHERE username = $1`,
     [uname],
     (error, results) => {
       if (error) {
         throw error;
       }
+      //console.log(results)
       return results.rows;
     }
   );
+  return rows;
 }
 
 // get all users
@@ -66,8 +68,8 @@ function getAllUsers(tablename) {
 
 //getAllUsers("users")
 
-async function main(){
-  var res = await getUser("users", "jimsmith");
+function main(){
+  var res = getUser("users", "jimsmith");
   console.log(res)  
 }
 

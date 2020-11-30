@@ -19,69 +19,25 @@ const pool = new Pool({
   database: "userdb",
   password: process.env.PASSWORD,
   port: 5432,
+  max: 10,
 });
-
-// create table
-function createTable(tablename) {
-  pool.query(
-    `CREATE TABLE IF NOT EXISTS ${tablename} (id serial primary key, username varchar(255), password varchar(255), session_id CHAR (40));`,
-    (error, results) => {
-      if (error) {
-        throw error;
-      }
-      console.log(JSON.stringify(results.command));
-    }
-  );
-}
-
-createTable("users");
-
-// register a user
-function addUser(tablename, uname, pword) {
-  pool.query(
-    `INSERT INTO ${tablename} (username, password) VALUES ($1, $2)`,
-    [uname, pword],
-    (error, results) => {
-      if (error) {
-        throw error;
-      }
-      console.log(JSON.stringify(results.rowCount));
-    }
-  );
-}
-
-// get specific user
-function getUser(tablename, uname) {
-  pool.query(
-    `SELECT * FROM ${tablename} WHERE username = $1`,
-    [uname],
-    (error, results) => {
-      if (error) {
-        throw error;
-      }
-      return results.rows;
-    }
-  );
-}
-
-// get all users
-function getAllUsers(tablename) {
-  pool.query(`SELECT * FROM ${tablename} ORDER BY id ASC`, (error, results) => {
-    if (error) {
-      throw error;
-    }
-    console.log(JSON.stringify(results.rows));
-  });
-}
 
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/views/index.html");
 });
 
-app.post("/login", (req, res) => {
-  console.log("/login");
-  var result = getUser("users", req.body.username);
-  console.log(`User password: ${result}`)
+app.post("/login", async (req, res) => {
+  console.log(`/login => get user: ${req.body.username}`);
+  var results = await pool.query("SELECT * FROM users WHERE username = $1", [
+    req.body.username,
+  ]);
+  var pword = results.rows[0].password;
+  if (pword == req.body.password) {
+    console.log("Authenticated credentials");
+    res.sendFile(__dirname + "/views/protected.html");
+  } else {
+    console.log("Credentials not valid");
+  }
 });
 
 app.get("/register-form", (req, res) => {
@@ -89,14 +45,16 @@ app.get("/register-form", (req, res) => {
   res.sendFile(__dirname + "/views/register-form.html");
 });
 
-app.post("/register", (req, res) => {
+app.post("/register", async (req, res) => {
   console.log(`/register => ${req.body.username} ${req.body.password}`);
-  addUser("users", req.body.username, req.body.password);
+  await pool.query("INSERT INTO users (username, password) VALUES ($1, $2)",[req.body.username, req.body.password]);
+  res.sendFile(__dirname + "/views/index.html");
 });
 
-app.get("/protected", (req, res) => {
-  console.log("/protected");
-  res.sendFile(__dirname + "/views/protected.html");
+app.get("/debug", async (req, res) => {
+  console.log("/debug");
+  var results = await pool.query("SELECT * FROM users ORDER BY id ASC");
+  console.table(results.rows);
 });
 
 const listener = app.listen(process.env.PORT, () => {

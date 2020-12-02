@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const { v4: uuidv4 } = require("uuid");
+const bcrypt = require("bcrypt");
 
 const app = express();
 app.use(express.static("public"));
@@ -28,12 +29,15 @@ app.get("/", (req, res) => {
 });
 
 app.post("/login", async (req, res) => {
-  console.log(`/login => get user: ${req.body.username}`);
+  console.log(
+    `/login => username: ${req.body.username} password: ${req.body.password}`
+  );
   var results = await pool.query("SELECT * FROM users WHERE username = $1", [
     req.body.username,
   ]);
-  var pword = results.rows[0].password;
-  if (pword == req.body.password) {
+  var pword = results.rows[0].password; // get hashed password
+  const result = await bcrypt.compare(req.body.password, pword);
+  if (result) {
     console.log("Authenticated credentials");
     // create session ID and store in database for user
     var session_id = uuidv4();
@@ -59,9 +63,11 @@ app.get("/register-form", (req, res) => {
 
 app.post("/register", async (req, res) => {
   console.log(`/register => ${req.body.username} ${req.body.password}`);
+  const saltRounds = 10;
+  const password = await bcrypt.hash(req.body.password, saltRounds);
   await pool.query("INSERT INTO users (username, password) VALUES ($1, $2)", [
     req.body.username,
-    req.body.password,
+    password, // hashed password
   ]);
   res.sendFile(__dirname + "/views/index.html");
 });
@@ -72,11 +78,12 @@ app.get("/debug", async (req, res) => {
   var cookie = req.headers.cookie;
   var session_id = getCookie(cookie, "session_id");
   // look up username from session_id in database
-  var results = await pool.query("SELECT username FROM users WHERE session_id = $1", [
-    session_id,
-  ]);
+  var results = await pool.query(
+    "SELECT username FROM users WHERE session_id = $1",
+    [session_id]
+  );
   var username = results.rows[0].username;
-  console.log("username: ", username)
+  console.log("username: ", username);
   if (username) {
     console.table(results.rows);
     res.status(200).send(username);

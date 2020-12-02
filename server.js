@@ -49,7 +49,7 @@ app.post("/login", async (req, res) => {
     var cookie =
       "session_id=" + session_id + "; HttpOnly; samesite=strict; path=/debug"; // You can add Secure; property, but it won't work for local testing via HTTP, only HTTPS
     res.setHeader("set-cookie", [cookie]);
-    res.sendFile(__dirname + "/views/protected.html");
+    res.sendFile(__dirname + "/views/logged-in.html");
   } else {
     console.log("Credentials not valid");
     res.status(403).send("Credentials failed");
@@ -85,6 +85,7 @@ app.get("/debug", async (req, res) => {
   var username = results.rows[0].username;
   console.log("username: ", username);
   if (username) {
+    results = await pool.query("SELECT * FROM users ");
     console.table(results.rows);
     res.status(200).send(username);
   } else {

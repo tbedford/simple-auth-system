@@ -44,9 +44,9 @@ testdb =>
 CREATE TABLE users (
   ID SERIAL PRIMARY KEY,
   username VARCHAR(255),
-  password VARCHAR(255)
+  password VARCHAR(255),
+  session_id VARCHAR(50)
 );
 ```
 
 You can also create the table from code -> see testdb.js for how to do this.
-

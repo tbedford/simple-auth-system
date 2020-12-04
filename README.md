@@ -53,6 +53,8 @@ You can also create the table from code -> see testdb.js for how to do this.
 
 ## TODO
 
-* Set an expiry on the cookie - this should be configurable. At the moment it's just default expiry (when the browser closes)
-* If the user logs out we should expire the cookie. Could probably avoid resetting the session_id field in the database as without the cookie there's nothing to compare to, and the session_id will be regenerated anyway when the user logs back in, but feel it probably should be cleared anyway!
-* Need to fix HTTP error codes!
+- [x] Set an expiry on the cookie - this should be configurable. At the moment it's just default expiry (when the browser closes)
+- [x] If the user logs out we should expire the cookie. Could probably avoid resetting the session_id field in the database as without the cookie there's nothing to compare to, and the session_id will be regenerated anyway when the user logs back in, but feel it probably should be cleared anyway!
+- [ ] Need to fix HTTP error codes!
+- [ ] Is there a way to set multiple paths for a cookie??
+

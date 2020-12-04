@@ -47,7 +47,9 @@ app.post("/login", async (req, res) => {
     ]);
     //console.log("Session ID => " + session_id)
     var cookie =
-      "session_id=" + session_id + "; HttpOnly; samesite=strict; path=/debug"; // You can add Secure; property, but it won't work for local testing via HTTP, only HTTPS
+      "session_id=" + session_id + "; HttpOnly; samesite=strict; path=/;"; // You can add Secure; property, but it won't work for local testing via HTTP, only HTTPS
+    cookie = addCookieExpiry(cookie, 1); // one hour expiry
+    console.log("Cookie with expiry => " + cookie);
     res.setHeader("set-cookie", [cookie]);
     res.sendFile(__dirname + "/views/logged-in.html");
   } else {
@@ -76,21 +78,40 @@ app.post("/register", async (req, res) => {
 app.get("/debug", async (req, res) => {
   console.log("/debug");
   var cookie = req.headers.cookie;
+  console.log("/debug: cookie is: " + cookie);
   var session_id = getCookie(cookie, "session_id");
-  // look up username from session_id in database
-  var results = await pool.query(
-    "SELECT username FROM users WHERE session_id = $1",
-    [session_id]
-  );
-  var username = results.rows[0].username;
-  console.log("username: ", username);
-  if (username) {
-    results = await pool.query("SELECT * FROM users ");
-    console.table(results.rows);
-    res.status(200).send(username);
-  } else {
+
+  // if the session_id is not set then return error
+  if (!session_id) {
+    console.log("Session cookie not set");
     res.status(404).send("Session error");
+  } else {
+    // look up username from session_id in database
+    var results = await pool.query(
+      "SELECT username FROM users WHERE session_id = $1",
+      [session_id]
+    );
+    var username = results.rows[0].username;
+    console.log("username: ", username);
+    if (username) {
+      results = await pool.query("SELECT * FROM users ");
+      console.table(results.rows);
+      res.status(200).send(username);
+    } else {
+      res.status(404).send("Session error");
+    }
   }
+});
+
+// In the simple case just nullify the session cookie.
+// In the more complex (belt and braces) case, nullify the cookie and nullify the session_id in the database
+// The latter of course does not happens if the cookie just expires
+app.get("/logout", (req, res) => {
+  console.log("Logout");
+  var cookie = "session_id=" + "; " + "expires=Thu, 01 Jan 1970 00:00:00 UTC";
+  console.log(cookie);
+  res.setHeader("set-cookie", [cookie]);
+  res.sendFile(__dirname + "/views/logged-out.html");
 });
 
 const listener = app.listen(process.env.PORT, () => {
@@ -112,4 +133,11 @@ function getCookie(cookie, cname) {
     }
   }
   return "";
+}
+
+function addCookieExpiry(cookie, hours) {
+  var d = new Date();
+  d.setTime(d.getTime() + hours * 60 * 60 * 1000);
+  var expires = "; expires=" + d.toUTCString();
+  return (cookie = cookie + expires + ";");
 }
